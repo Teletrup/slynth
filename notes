@@ -33,3 +33,10 @@ but I want to mix final notes, not sum oscilators
   does it matter?
 
 MIDI notes are weird
+
+tidy up keydown & keypress
+
+ignore autorepeat using flags for each key
+
+many oscillators with the same tone should be able to play at once
+  shouldn't be a problem, killing the osc can be deferred

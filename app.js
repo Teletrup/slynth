@@ -49,10 +49,11 @@ master.gain.setValueAtTime(0.5, audioCtx.currentTime);
 
 
 
-let octave = 4;
+let octave = 3;
 
 const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 const noteKeys = 'zsxdcvgbhnjm,l.;/q2w3e4rt6y7ui9o0p-'
+const keyFlags = Object.fromEntries([...noteKeys].map(x => [x, false]));
 
 const notes = Array.from(Array(128), (x, i) => ({
   name: getNoteName(i),
@@ -60,7 +61,8 @@ const notes = Array.from(Array(128), (x, i) => ({
 }));
 
 function getNoteName(n) {
-  return `${noteNames[n % 12]}${Math.floor(n / 12)}`;
+  return `${noteNames[n % 12]}${Math.floor(n / 12) - 2}`;
+  //return n;
 }
 
 function view(draw) {
@@ -75,12 +77,13 @@ function view(draw) {
   }
   document.body.onkeydown = e => {
     const relIdx = noteKeys.indexOf(e.key);
-    if (relIdx === -1) return
-    const noteIdx = relIdx + octave * 12;
+    if (relIdx === -1 || keyFlags[relIdx]) return
+    keyFlags[relIdx] = true;
+    const noteIdx = relIdx + (octave + 2) * 12;
     const osc = audioCtx.createOscillator();
     osc.type = "sawtooth";
     master.connect(audioCtx.destination);
-    osc.frequency.setValueAtTime(440, audioCtx.currentTime); // value in hertz
+    osc.frequency.setValueAtTime(440 * 2**((noteIdx - 69)/12), audioCtx.currentTime); // value in hertz
     osc.connect(master);
     osc.start();
     notes[noteIdx].osc = osc;
@@ -89,7 +92,8 @@ function view(draw) {
   document.body.onkeyup = e => {
     const relIdx = noteKeys.indexOf(e.key);
     if (relIdx === -1) return
-    const noteIdx = relIdx + octave * 12;
+    keyFlags[relIdx] = false;
+    const noteIdx = relIdx + octave * 12 + 24;
     notes[noteIdx].osc.stop();
     notes[noteIdx].osc.disconnect(master);
     notes[noteIdx].osc = undefined;
