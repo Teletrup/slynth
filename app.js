@@ -44,35 +44,20 @@ const r = 0.3;
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
 // create Oscillator node
-const oscillator = audioCtx.createOscillator();
 const master = audioCtx.createGain();
 master.gain.setValueAtTime(0.5, audioCtx.currentTime);
 
-oscillator.type = "sawtooth";
-master.connect(audioCtx.destination);
-oscillator.frequency.setValueAtTime(440, audioCtx.currentTime); // value in hertz
 
-let started = false;
-const play = () => {
-  if (!started) {
-    oscillator.start();
-    started = true;
-  }
-  oscillator.connect(master);
-}
-const stop = () => oscillator.disconnect(master);
-
-/*
-document.body.onkeydown = play;
-document.body.onkeyup = stop;
-*/
 
 let octave = 4;
 
 const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 const noteKeys = 'zsxdcvgbhnjm,l.;/q2w3e4rt6y7ui9o0p-'
 
-let note;
+const notes = Array.from(Array(128), (x, i) => ({
+  name: getNoteName(i),
+  osc: undefined,
+}));
 
 function getNoteName(n) {
   return `${noteNames[n % 12]}${Math.floor(n / 12)}`;
@@ -89,17 +74,33 @@ function view(draw) {
     }
   }
   document.body.onkeydown = e => {
-    const noteIdx = noteKeys.indexOf(e.key);
-    if (noteIdx === -1) return;
-    note = noteIdx + octave * 12;
+    const relIdx = noteKeys.indexOf(e.key);
+    if (relIdx === -1) return
+    const noteIdx = relIdx + octave * 12;
+    const osc = audioCtx.createOscillator();
+    osc.type = "sawtooth";
+    master.connect(audioCtx.destination);
+    osc.frequency.setValueAtTime(440, audioCtx.currentTime); // value in hertz
+    osc.connect(master);
+    osc.start();
+    notes[noteIdx].osc = osc;
+    draw();
+  }
+  document.body.onkeyup = e => {
+    const relIdx = noteKeys.indexOf(e.key);
+    if (relIdx === -1) return
+    const noteIdx = relIdx + octave * 12;
+    notes[noteIdx].osc.stop();
+    notes[noteIdx].osc.disconnect(master);
+    notes[noteIdx].osc = undefined;
     draw();
   }
   return ['div',
     `octave: ${octave}`,
     ['br'],
-    `note: ${getNoteName(note)}`,
+    `notes: ${notes.filter(x => x.osc !== undefined).map(x => x.name).join(', ')}`,
+    //store names in array?
     //'a\na\n', //no nl-s in text nodes?
-    
   ];
 }
 
