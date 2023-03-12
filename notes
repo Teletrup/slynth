@@ -1,0 +1,29 @@
+set up vsmth
+  n-root version?
+
+global thingamajiggles problem
+can't call draw from global event handlers
+  can bind new event handlers on each render
+    does it make stuff slow?
+
+explicit check for handler initialization?
+it's the same draw() after all, can bind it
+seems finnicky though
+a workaround for something that would be trivial in version with one global draw()
+but does it really matter? normal event handlers get rebound on each rendering as well
+document element isn't special
+
+
+array of freqs for all midi notes
+create and attach oscs on key_down
+what about creating oscs? 
+are unattached oscs slow?
+you'd have to re-initialize them each time you change waveform
+are they passively slow though?
+
+note state
+  velocity
+  adsr
+
+does MIDI signal release and stop separately?
+
