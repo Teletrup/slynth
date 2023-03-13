@@ -40,3 +40,38 @@ ignore autorepeat using flags for each key
 
 many oscillators with the same tone should be able to play at once
   shouldn't be a problem, killing the osc can be deferred
+
+filter synced to the note
+
+fm
+  varying parameters with periodic wave
+
+using the same patch many times
+typable knob readings
+
+
+why is it so stateful
+maybe filters need it?
+do I need to create the whole pipeline for each note?
+
+a simple filter stores one sample
+
+I want the signal for each midi note to be processed separately, so I can make the filter offset based on the note
+physical synths probably don't do it like that
+
+small polyphony
+
+note list-queue
+or just array
+expired notes get overwritten on insert
+  why not while playing?
+    additional branch?
+    adding a zero is quicker than checking if there's anything to add
+      but what if it defragmented the note array? it would loop less from that sample on
+
+how timeouts work?
+
+setValueAtTime in the future?
+  that's what it's for probably
+
+what can be done with allpass?
