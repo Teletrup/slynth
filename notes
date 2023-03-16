@@ -75,3 +75,17 @@ setValueAtTime in the future?
   that's what it's for probably
 
 what can be done with allpass?
+
+a hacky phase shift extension for osc 
+the OOP way
+just for lulz
+
+velocity dependent piano key coloring
+
+knob problem
+  write fn with explicit side effect?
+  same with read function
+eliminate the param
+
+when side effect gets farther and farther away from the root view, it gets messier and messier
+  rly?

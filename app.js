@@ -79,7 +79,6 @@ lop.connect(master);
 master.connect(audioCtx.destination);
 
 
-
 let octave = 3;
 
 const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -98,10 +97,10 @@ function getNoteName(n) {
 
 function view(draw) {
   document.body.onkeypress = e => {
-    if (e.key == '<') {
+    if (e.key == 'F') {
       octave--;
       draw();
-    } else if (e.key == '>') {
+    } else if (e.key == 'K') {
       octave++;
       draw();
     }
