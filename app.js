@@ -95,7 +95,6 @@ function getNoteName(n) {
 }
 
 
-
 function view(draw) {
   document.body.onkeypress = e => {
     if (e.key == 'F') {
@@ -139,10 +138,12 @@ function view(draw) {
     ['br'],
     waveButtonView(draw, 'sine',
       ['g',
-        /*TODO*/
-        ['line', {x1: '0%', y1: '50%', x2: '25%', y2: '0%'}],
-        ['line', {x1: '25%', y1: '0%', x2: '75%', y2: '100%'}],
-        ['line', {x1: '75%', y1: '100%', x2: '100%', y2: '50%'}],
+        ...[...Array(10).keys()].map(i => ['line', {
+          x1: `${i*10}%`,
+          y1: `${50 + 50*Math.sin(i/10*2*Math.PI)}%`,
+          x2: `${(i+1)*10}%`,
+          y2: `${50 + 50*Math.sin((i+1)/10*2*Math.PI)}%`
+        }]),
       ]
     ),
     waveButtonView(draw, 'triangle',
