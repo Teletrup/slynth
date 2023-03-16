@@ -1,37 +1,36 @@
 import * as Vsmth from './vsmth.js'
 
-function viewKnob(draw, knob) {
+let locked = false
+
+function knobView(draw, title, toReading, fromReading, show) {
   const knobRef = {};
-  const param = knob.param;
-  const angle = knob.p2r(param.val);
+  const angle = toReading(); //rename as toSetting?
   function lock() {
     knobRef.current.requestPointerLock();
-    model.locked = true;
+    locked = true;
     //updating model without re-rendering. That's cool
   }
   function turn(e) {
-    if (model.locked) {
-      param.val = knob.r2p(angle - e.movementY)
-      //wouldn't referencing the model be nicer?
-      //or even param as a key? like that: model[param]
+    if (locked) {
+      fromReading(angle - e.movementY) //rename readingUpdate or smth?
       draw();
     }
   }
   function unlock() {
     document.exitPointerLock();
-    model.locked = false;
+    locked = false;
   }
   const events = {onmousedown: lock, onmouseup: unlock, onmousemove: turn};
   return (
       ['div', {className: 'knob'},
-        ['span', {style: 'margin-bottom: 0.1em'}, knob.title],
+        ['span', {style: 'margin-bottom: 0.1em'}, title],
         ['svg', {style: 'width: 40px; height: 40px;'},
           ['g', {transform: `rotate(${angle}, 20, 20)`, ...events}, //using a function wouldn't be so pretty here
             ['circle', {ref: knobRef, cx: 20, cy: 20, r: 20}],
             ['rect', {x: 20-1.5, y: 2, width: 3, height: `30%`, fill: 'white'}],
           ],
         ],
-        knob.show(param.val),
+        show(),
       ]
   );
 }
@@ -94,6 +93,7 @@ function getNoteName(n) {
   return `${noteNames[n % 12]}${Math.floor(n / 12) - 2}`;
   //return n;
 }
+
 
 function view(draw) {
   document.body.onkeypress = e => {
@@ -165,6 +165,14 @@ function view(draw) {
         ['line', {x1: '50%', y1: '0%', x2: '50%', y2: '100%'}],
         ['line', {x1: '50%', y1: '100%', x2: '100%', y2: '50%'}],
       ]
+    ),
+    ['br'],
+    knobView(
+      draw,
+      'cutoff', //named parameters? 
+      () => lop.frequency.value/20000*(2*130)-130,
+      angle => {lop.frequency.value = (angle + 130)/(2*130)*20000},
+      () => `${Math.floor(lop.frequency.value)} Hz`
     ),
   ];
 }
