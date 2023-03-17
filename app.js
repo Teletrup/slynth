@@ -170,16 +170,25 @@ function view(draw) {
       ]
     ),
     ['br'],
-    ['div', {style: 'display: inline-flex'},
-    knobView(
-      draw,
-      'cutoff', //named parameters? 
-      //() => lop.frequency.value/20000*(2*130)-130,
-      //angle => {lop.frequency.value = (angle + 130)/(2*130)*20000},
-      () => (Math.log(lop.frequency.value) / Math.log(440) - 1)/lspan*130,
-      angle => {lop.frequency.value = 440**(1 + angle/130*lspan)}, //TODO implement log freq
-      () => `${Math.floor(lop.frequency.value)} Hz`
-    ),
+    ['div', {style: 'display: flex'},
+      knobView(
+        draw,
+        'cutoff', //named parameters? 
+        //() => lop.frequency.value/20000*(2*130)-130,
+        //angle => {lop.frequency.value = (angle + 130)/(2*130)*20000},
+        () => (Math.log(lop.frequency.value) / Math.log(440) - 1)/lspan*130,
+        angle => {lop.frequency.value = 440**(1 + angle/130*lspan)}, //TODO implement log freq
+        () => `${Math.floor(lop.frequency.value)} Hz`
+      ),
+      knobView(
+        draw,
+        'resonance', //named parameters? 
+        //() => lop.frequency.value/20000*(2*130)-130,
+        //angle => {lop.frequency.value = (angle + 130)/(2*130)*20000},
+        () => lop.Q.value / 100 * 260 - 130,
+        angle => {lop.Q.value = 100 * (angle + 130) / 260}, //TODO implement log freq
+        () => `${Math.floor(lop.Q.value)}`
+      ),
     ]
   ];
 }
