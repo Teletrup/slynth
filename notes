@@ -89,3 +89,23 @@ eliminate the param
 
 when side effect gets farther and farther away from the root view, it gets messier and messier
   rly?
+
+todo
+  adsr
+  custom exciters
+    karplus-strong
+  fm synthesis
+  modularity
+  tidy stuff up
+    buttons
+    knobs
+      why do they behave as they do
+        why they end up in the middle of the screen if display is "block"?
+    
+
+why does sine sound all weird without compressor
+is it clipping?
+where is it clipping
+
+try with no envelope
+try with additional gain set to 1

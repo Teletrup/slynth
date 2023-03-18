@@ -47,24 +47,19 @@ function waveButtonView(draw, wf, picture) {
   ];
 }
 
-const a = 0.2;
-const d = 0.2;
-const s = 0.6;
-const r = 0.3;
-
 let waveform = 'sawtooth';
 
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-// create Oscillator node
 const input = audioCtx.createGain();
-input.gain.value = 50;
-//^^
 
 const master = audioCtx.createDynamicsCompressor();
-master.threshold.value = -50;
+master.threshold.value = -30;
 
-//master.gain.setValueAtTime(1, audioCtx.currentTime);
+/*
+const master = audioCtx.createGain();
+master.gain.setValueAtTime(1, audioCtx.currentTime);
+*/
 
 
 const lop = audioCtx.createBiquadFilter();
@@ -87,12 +82,18 @@ const keyFlags = Object.fromEntries([...noteKeys].map(x => [x, false]));
 const notes = Array.from(Array(128), (x, i) => ({
   name: getNoteName(i),
   osc: undefined,
+  env: undefined,
 }));
 
 function getNoteName(n) {
   return `${noteNames[n % 12]}${Math.floor(n / 12) - 2}`;
   //return n;
 }
+
+const a = 0.9;
+const d = 0.2;
+const s = 0.5;
+const r = 0.3;
 
 
 function view(draw) {
@@ -113,9 +114,15 @@ function view(draw) {
     const osc = audioCtx.createOscillator();
     osc.type = waveform;
     osc.frequency.setValueAtTime(440 * 2**((noteIdx - 69)/12), audioCtx.currentTime); // value in hertz
-    osc.connect(input);
+    const env = audioCtx.createGain();
+    env.gain.setValueAtTime(0, audioCtx.currentTime); // just assignment?
+    env.gain.linearRampToValueAtTime(1, audioCtx.currentTime + a);
+    env.gain.linearRampToValueAtTime(0, audioCtx.currentTime + a + d);
+    osc.connect(env);
+    env.connect(input);
     osc.start();
     notes[noteIdx].osc = osc;
+    notes[noteIdx].env = env;
     draw();
   }
   document.body.onkeyup = e => {
@@ -124,8 +131,9 @@ function view(draw) {
     keyFlags[relIdx] = false;
     const noteIdx = relIdx + octave * 12 + 24;
     notes[noteIdx].osc.stop();
-    notes[noteIdx].osc.disconnect(input);
+    notes[noteIdx].env.disconnect(input);
     notes[noteIdx].osc = undefined;
+    notes[noteIdx].env = undefined;
     draw();
   }
   const lspan = Math.log(20000) / Math.log(440) - 1;
@@ -186,7 +194,7 @@ function view(draw) {
         //() => lop.frequency.value/20000*(2*130)-130,
         //angle => {lop.frequency.value = (angle + 130)/(2*130)*20000},
         () => lop.Q.value / 100 * 260 - 130,
-        angle => {lop.Q.value = 100 * (angle + 130) / 260}, //TODO implement log freq
+        angle => {lop.Q.value = 100 * (angle + 130) / 260},
         () => `${Math.floor(lop.Q.value)}`
       ),
     ]
