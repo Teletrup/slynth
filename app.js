@@ -90,10 +90,10 @@ function getNoteName(n) {
   //return n;
 }
 
-const a = 0.9;
-const d = 0.2;
-const s = 0.5;
-const r = 0.3;
+let a = 0.3;
+let d = 0.3;
+let s = 1;
+let r = 0.3;
 
 
 function view(draw) {
@@ -117,7 +117,7 @@ function view(draw) {
     const env = audioCtx.createGain();
     env.gain.setValueAtTime(0, audioCtx.currentTime); // just assignment?
     env.gain.linearRampToValueAtTime(1, audioCtx.currentTime + a);
-    env.gain.linearRampToValueAtTime(0, audioCtx.currentTime + a + d);
+    env.gain.linearRampToValueAtTime(s, audioCtx.currentTime + a + d);
     osc.connect(env);
     env.connect(input);
     osc.start();
@@ -130,8 +130,13 @@ function view(draw) {
     if (relIdx === -1) return
     keyFlags[relIdx] = false;
     const noteIdx = relIdx + octave * 12 + 24;
-    notes[noteIdx].osc.stop();
-    notes[noteIdx].env.disconnect(input);
+    const osc = notes[noteIdx].osc;
+    const env = notes[noteIdx].env;
+    env.gain.linearRampToValueAtTime(0, audioCtx.currentTime + r);
+    setTimeout(() => {
+      osc.stop();
+      env.disconnect(input);
+    }, r * 1000);
     notes[noteIdx].osc = undefined;
     notes[noteIdx].env = undefined;
     draw();
@@ -197,7 +202,37 @@ function view(draw) {
         angle => {lop.Q.value = 100 * (angle + 130) / 260},
         () => `${Math.floor(lop.Q.value)}`
       ),
-    ]
+    ],
+    ['div', {style: 'display: inline-flex'},
+      knobView(
+        draw,
+        'attack',
+        () => Math.log(a)/Math.log(10)*130,
+        angle => {a = 10**(angle/130)},
+        () => `${a} s`
+      ),
+      knobView(
+        draw,
+        'decay',
+        () => Math.log(d)/Math.log(10)*130,
+        angle => {d = 10**(angle/130)},
+        () => `${d} s`
+      ),
+      knobView(
+        draw,
+        'sustain',
+        () => s * 260 - 130,
+        angle => {s = (angle + 130) / 260},
+        () => `${s}` //in Db?
+      ),
+      knobView(
+        draw,
+        'release',
+        () => Math.log(r)/Math.log(10)*130,
+        angle => {r = 10**(angle/130)},
+        () => `${r} s`
+      ),
+    ],
   ];
 }
 
