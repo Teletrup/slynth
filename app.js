@@ -96,6 +96,10 @@ let s = 1;
 let r = 0.3;
 
 
+function limit(min, max, val) {
+  return Math.max(min, Math.min(max, val)); //TODO explain counterintuitive weirdness
+}
+
 function view(draw) {
   document.body.onkeypress = e => {
     if (e.key == 'F') {
@@ -190,7 +194,7 @@ function view(draw) {
         //() => lop.frequency.value/20000*(2*130)-130,
         //angle => {lop.frequency.value = (angle + 130)/(2*130)*20000},
         () => (Math.log(lop.frequency.value) / Math.log(440) - 1)/lspan*130,
-        angle => {lop.frequency.value = 440**(1 + angle/130*lspan)}, //TODO implement log freq
+        angle => {lop.frequency.value = limit(9, 20000, 440**(1 + angle/130*lspan))}, //TODO implement log freq
         () => `${Math.floor(lop.frequency.value)} Hz`
       ),
       knobView(
@@ -208,29 +212,29 @@ function view(draw) {
         draw,
         'attack',
         () => Math.log(a)/Math.log(10)*130,
-        angle => {a = 10**(angle/130)},
-        () => `${a} s`
+        angle => {a = limit(0.1, 10, 10**(angle/130))}, //TODO ranges in parameter, not reading
+        () => `${Math.round(a * 100) / 100} s`
       ),
       knobView(
         draw,
         'decay',
         () => Math.log(d)/Math.log(10)*130,
-        angle => {d = 10**(angle/130)},
-        () => `${d} s`
+        angle => {d = limit(0.1, 10, 10**(angle/130))},
+        () => `${Math.round(d * 100) / 100} s`
       ),
       knobView(
         draw,
         'sustain',
         () => s * 260 - 130,
-        angle => {s = (angle + 130) / 260},
-        () => `${s}` //in Db?
+        angle => {s = limit(0, 1, (angle + 130) / 260)},
+        () => `${Math.round(s * 100) / 100}` //in Db?
       ),
       knobView(
         draw,
         'release',
         () => Math.log(r)/Math.log(10)*130,
-        angle => {r = 10**(angle/130)},
-        () => `${r} s`
+        angle => {r = limit(0.1, 10, 10**(angle/130))},
+        () => `${Math.round(r * 100) / 100} s`
       ),
     ],
   ];
