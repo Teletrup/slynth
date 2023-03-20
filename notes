@@ -112,3 +112,8 @@ try with no envelope
 I want a, d, r with 0
 
 fix the silidey-knobs
+
+fix pops
+
+release bug
+  a >~ 2r
