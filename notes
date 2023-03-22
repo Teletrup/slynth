@@ -91,10 +91,15 @@ when side effect gets farther and farther away from the root view, it gets messi
   rly?
 
 todo
-  adsr
   custom exciters
     karplus-strong
   fm synthesis
+  gate
+  lfo
+  delay
+  reverb
+  unison
+  vibrato
   modularity
   tidy stuff up
     buttons

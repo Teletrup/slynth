@@ -2,7 +2,8 @@ import * as Vsmth from './vsmth.js'
 
 let locked = false
 
-function knobView(draw, title, toReading, fromReading, show) {
+
+function knobView(draw, {title, toReading, fromReading, show}) {
   const knobRef = {};
   const angle = toReading(); //rename as toSetting?
   function lock() {
@@ -117,7 +118,7 @@ function view(draw) {
     const noteIdx = relIdx + (octave + 1) * 12;
     const osc = audioCtx.createOscillator();
     osc.type = waveform;
-    osc.frequency.setValueAtTime(440 * 2**((noteIdx - 69)/12), audioCtx.currentTime); // value in hertz
+    osc.frequency.setValueAtTime(432 * 2**((noteIdx - 69)/12), audioCtx.currentTime); 
     const env = audioCtx.createGain();
     env.gain.setValueAtTime(0, audioCtx.currentTime); // just assignment?
     env.gain.linearRampToValueAtTime(1, audioCtx.currentTime + a);
@@ -188,58 +189,52 @@ function view(draw) {
     ),
     ['br'],
     ['div', {style: 'display: flex'},
-      knobView(
-        draw,
-        'cutoff', //named parameters? 
-        //() => lop.frequency.value/20000*(2*130)-130,
-        //angle => {lop.frequency.value = (angle + 130)/(2*130)*20000},
-        () => (Math.log(lop.frequency.value) / Math.log(440) - 1)/lspan*130,
-        angle => {lop.frequency.value = limit(9, 20000, 440**(1 + angle/130*lspan))}, //TODO implement log freq
-        () => `${Math.floor(lop.frequency.value)} Hz`
-      ),
-      knobView(
-        draw,
-        'resonance', //named parameters? 
-        //() => lop.frequency.value/20000*(2*130)-130,
-        //angle => {lop.frequency.value = (angle + 130)/(2*130)*20000},
-        () => lop.Q.value / 100 * 260 - 130,
-        angle => {lop.Q.value = 100 * (angle + 130) / 260},
-        () => `${Math.floor(lop.Q.value)}`
-      ),
+      knobView(draw, {
+        title: 'cutoff', //named parameters? 
+        //toReading: () => lop.frequency.value/20000*(2*130)-130,
+        //fromReading: angle => {lop.frequency.value = (angle + 130)/(2*130)*20000},
+        toReading: () => (Math.log(lop.frequency.value) / Math.log(440) - 1)/lspan*130,
+        fromReading: angle => {lop.frequency.value = limit(9, 20000, 440**(1 + angle/130*lspan))}, //TODO implement log freq
+        show: () => `${Math.floor(lop.frequency.value)} Hz`
+      }),
+      knobView(draw, {
+        title: 'resonance', //named parameters? 
+        //toReading: () => lop.frequency.value/20000*(2*130)-130,
+        //fromReading: angle => {lop.frequency.value = (angle + 130)/(2*130)*20000},
+        toReading: () => lop.Q.value / 100 * 260 - 130,
+        fromReading: angle => {lop.Q.value = 100 * (angle + 130) / 260},
+        show: () => `${Math.floor(lop.Q.value)}`
+      }),
     ],
     ['div', {style: 'display: inline-flex'},
-      knobView(
-        draw,
-        'attack',
-        () => a / 2 * 260 - 130,
-        angle => {a = limit(0, 2, (angle + 130) / 260 * 2)},
+      knobView(draw, {
+        title: 'attack',
+        toReading: () => a / 2 * 260 - 130,
+        fromReading: angle => {a = limit(0, 2, (angle + 130) / 260 * 2)},
         /*
-        () => Math.log(a)/Math.log(10)*130,
-        angle => {a = limit(0.1, 10, 10**(angle/130))},
+        toReading: () => Math.log(a)/Math.log(10)*130,
+        fromReading: angle => {a = limit(0.1, 10, 10**(angle/130))},
         */
-        () => `${Math.round(a * 100) / 100} s`
-      ),
-      knobView(
-        draw,
-        'decay',
-        () => d / 2 * 260 - 130,
-        angle => {d = limit(0, 2, (angle + 130) / 260 * 2)},
-        () => `${Math.round(d * 100) / 100} s`
-      ),
-      knobView(
-        draw,
-        'sustain',
-        () => s * 260 - 130,
-        angle => {s = limit(0, 1, (angle + 130) / 260)},
-        () => `${Math.round(s * 100) / 100}` //in Db?
-      ),
-      knobView(
-        draw,
-        'release',
-        () => r / 2 * 260 - 130,
-        angle => {r = limit(0, 2, (angle + 130) / 260 * 2)},
-        () => `${Math.round(r * 100) / 100} s`
-      ),
+        show: () => `${Math.round(a * 100) / 100} s`
+      }),
+      knobView(draw, {
+        title: 'decay',
+        toReading: () => d / 2 * 260 - 130,
+        fromReading: angle => {d = limit(0, 2, (angle + 130) / 260 * 2)},
+        show: () => `${Math.round(d * 100) / 100} s`
+      }),
+      knobView(draw, {
+        title: 'sustain',
+        toReading: () => s * 260 - 130,
+        fromReading: angle => {s = limit(0, 1, (angle + 130) / 260)},
+        show: () => `${Math.round(s * 100) / 100}` //in Db?
+      }),
+      knobView(draw, {
+        title: 'release',
+        toReading: () => r / 2 * 260 - 130,
+        fromReading: angle => {r = limit(0, 2, (angle + 130) / 260 * 2)},
+        show: () => `${Math.round(r * 100) / 100} s`
+      }),
     ],
   ];
 }
