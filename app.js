@@ -1,6 +1,44 @@
 import * as Vsmth from './vsmth.js'
 
+
+
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+const input = audioCtx.createGain();
+const master = audioCtx.createDynamicsCompressor();
+master.threshold.value = -30;
+
+const lop = audioCtx.createBiquadFilter();
+lop.type = 'lowpass';
+lop.frequency.value = 1000;
+//lop.Q.value = 50;
+
+
+input.connect(lop);
+lop.connect(master);
+master.connect(audioCtx.destination);
+
+const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+const noteKeys = 'zsxdcvgbhnjm,l.;/q2w3e4rt6y7ui9o0p-[]'
+const keyFlags = Object.fromEntries([...noteKeys].map(x => [x, false]));
+
+const notes = Array.from(Array(128), (x, i) => ({
+  name: getNoteName(i),
+  osc: undefined,
+  env: undefined,
+}));
+
 let locked = false
+
+
+let octave = 3;
+
+let k = 1;
+let a = 0.3;
+let d = 0.3;
+let s = 1;
+let r = 0.3;
+let waveform = 'sawtooth';
 
 
 function knobView(draw, {title, toReading, fromReading, show}) {
@@ -48,14 +86,6 @@ function waveButtonView(draw, wf, picture) {
   ];
 }
 
-let waveform = 'sawtooth';
-
-const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
-const input = audioCtx.createGain();
-
-const master = audioCtx.createDynamicsCompressor();
-master.threshold.value = -30;
 
 /*
 const master = audioCtx.createGain();
@@ -63,38 +93,11 @@ master.gain.setValueAtTime(1, audioCtx.currentTime);
 */
 
 
-const lop = audioCtx.createBiquadFilter();
-lop.type = 'lowpass';
-lop.frequency.value = 1000;
-//lop.Q.value = 50;
-
-
-input.connect(lop);
-lop.connect(master);
-master.connect(audioCtx.destination);
-
-
-let octave = 3;
-
-const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-const noteKeys = 'zsxdcvgbhnjm,l.;/q2w3e4rt6y7ui9o0p-[]'
-const keyFlags = Object.fromEntries([...noteKeys].map(x => [x, false]));
-
-const notes = Array.from(Array(128), (x, i) => ({
-  name: getNoteName(i),
-  osc: undefined,
-  env: undefined,
-}));
-
 function getNoteName(n) {
   return `${noteNames[n % 12]}${Math.floor(n / 12) - 1}`;
   //return n;
 }
 
-let a = 0.3;
-let d = 0.3;
-let s = 1;
-let r = 0.3;
 
 
 function limit(min, max, val) {
@@ -118,11 +121,11 @@ function view(draw) {
     const noteIdx = relIdx + (octave + 1) * 12;
     const osc = audioCtx.createOscillator();
     osc.type = waveform;
-    osc.frequency.setValueAtTime(432 * 2**((noteIdx - 69)/12), audioCtx.currentTime); 
+    osc.frequency.setValueAtTime(440 * 2**((noteIdx - 69)/12), audioCtx.currentTime); 
     const env = audioCtx.createGain();
     env.gain.setValueAtTime(0, audioCtx.currentTime); // just assignment?
-    env.gain.linearRampToValueAtTime(1, audioCtx.currentTime + a);
-    env.gain.linearRampToValueAtTime(s, audioCtx.currentTime + a + d);
+    env.gain.linearRampToValueAtTime(k, audioCtx.currentTime + a);
+    env.gain.linearRampToValueAtTime(s*k, audioCtx.currentTime + a + d);
     osc.connect(env);
     env.connect(input);
     osc.start();
@@ -208,6 +211,12 @@ function view(draw) {
     ],
     ['div', {style: 'display: inline-flex'},
       knobView(draw, {
+        title: 'gain',
+        toReading: () => k * 260 - 130,
+        fromReading: angle => {k = limit(0, 1, (angle + 130) / 260)},
+        show: () => `${Math.round(k * 100) / 100}` //in Db?
+      }),
+      knobView(draw, {
         title: 'attack',
         toReading: () => a / 2 * 260 - 130,
         fromReading: angle => {a = limit(0, 2, (angle + 130) / 260 * 2)},
@@ -236,6 +245,45 @@ function view(draw) {
         show: () => `${Math.round(r * 100) / 100} s`
       }),
     ],
+	['br'],
+	['br'],
+	['div', {style: 'display: inline-flex'},
+      knobView(draw, {
+        title: 'threshold',
+        toReading: () => master.threshold.value / 30 * 130,
+        fromReading: angle => {master.threshold.value = limit(-30, 30, angle / 130 * 30)},
+        /*
+        toReading: () => Math.log(a)/Math.log(10)*130,
+        fromReading: angle => {a = limit(0.1, 10, 10**(angle/130))},
+        */
+        show: () => `${Math.round(master.threshold.value * 100) / 100} dB`
+      }),
+      knobView(draw, { //TODO l8r
+        title: 'knee',
+        toReading: () => d / 2 * 260 - 130,
+        fromReading: angle => {d = limit(0, 2, (angle + 130) / 260 * 2)},
+        show: () => `co?`
+      }),
+      knobView(draw, {
+        title: 'ratio',
+        toReading: () => Math.log(master.ratio.value)/Math.log(10)*130,
+        fromReading: angle => {master.ratio.value = limit(1/20, 20, 10**(angle/130))}, //TODO fix range
+        show: () => `${Math.round(master.ratio.value * 100) / 100}` //in Db?
+      }),
+      knobView(draw, {
+        title: 'attack',
+        toReading: () => master.attack.value / 2 * 260 - 130,
+        fromReading: angle => {master.attack.value = limit(0, 2, (angle + 130) / 260 * 2)},
+        show: () => `${Math.round(master.attack.value * 100) / 100} s`
+      }),
+      knobView(draw, {
+        title: 'release',
+        toReading: () => master.release.value / 2 * 260 - 130,
+        fromReading: angle => {master.release.value = limit(0, 2, (angle + 130) / 260 * 2)},
+        show: () => `${Math.round(master.release.value * 100) / 100} s`
+      }),
+    ],
+	
   ];
 }
 

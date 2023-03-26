@@ -122,3 +122,23 @@ fix pops
 
 release bug
   a >~ 2r
+
+refactor
+split up the main view
+
+adsrView, filterView, oscView
+setting parameters and the side effects
+
+filter can be passed to filterView, but envs and oscs can't be
+
+in the future I might want to have envelopes for parameters
+
+write a synth with worklets?
+
+do orphaned webaudio nodes get GCd?
+
+
+why doesn't the compressor attenuate a single note?
+yeet the compressor?
+
+exciter gain
