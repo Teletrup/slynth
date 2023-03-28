@@ -58,6 +58,7 @@ a simple filter stores one sample
 
 I want the signal for each midi note to be processed separately, so I can make the filter offset based on the note
 physical synths probably don't do it like that
+  rly?
 
 small polyphony
 
@@ -91,7 +92,7 @@ when side effect gets farther and farther away from the root view, it gets messi
   rly?
 
 todo
-  custom exciters
+  custom voices
     karplus-strong
   fm synthesis
   gate
@@ -107,6 +108,33 @@ todo
       why do they behave as they do
         why they end up in the middle of the screen if display is "block"?
     
+mixer/patcher
+  fl-studio like
+  anything goes
+  a list of what goes where
+  patch graph
+
+test cases
+  n-x osc
+  karplus-strong
+  noise-o-phone
+
+
+limited polyphony?
+  small number of voices get assigned dynamically to notes
+
+does a boatload of inactive oscillators make stuff laggy
+
+read up how WA nodes work in blink
+  initiialization, connection, param change, start, stop
+
+factor out turning on/off a voice
+
+do what seems stupid
+  128 voices?
+
+if something seems stupid but works, it might be worth checking out
+  at least it works
 
 why does sine sound all weird without compressor
 is it clipping?
@@ -141,4 +169,39 @@ do orphaned webaudio nodes get GCd?
 why doesn't the compressor attenuate a single note?
 yeet the compressor?
 
-exciter gain
+voice gain
+  better to do at the mixning node, so the knob turning takes the effect while the note is playing
+
+voices
+  as many voices as notes
+    that number isn't special, 
+    initializing all the voice circuits isn't a problem
+    not iterating through mute notes during playback
+  limited
+  reinitialize each time
+
+how to stop webaudio from computing a disconnected circuit?
+  maybe it doesn't compute them?
+    what about delay lines?
+
+non-deterministic release?
+
+voice allocation
+
+"""
+Don't use oscillator.stop(now). Use oscillator.stop(osc1ReleaseVal) to schedule the oscillator to
+stop at the same time as the gain goes to 0.
+
+You don't have to disconnect and delete the oscillators. Once stopped, the oscillator can disconnect
+itself from the gain node by itself. If you drop the reference to the oscillator, it can be garbage
+collected.
+
+"""
+  rewrite noteoff
+  how disconnecting works?
+    can I get that info?
+  how about delay nodes?
+
+"delete" vs setting as "undefined"
+
+stopping a voice below an amplitude threshold

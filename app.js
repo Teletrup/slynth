@@ -5,8 +5,9 @@ import * as Vsmth from './vsmth.js'
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
 const input = audioCtx.createGain();
+input.gain.value = fromDb(-12);
 const master = audioCtx.createDynamicsCompressor();
-master.threshold.value = -30;
+master.threshold.value = 0;
 
 const lop = audioCtx.createBiquadFilter();
 lop.type = 'lowpass';
@@ -33,7 +34,6 @@ let locked = false
 
 let octave = 3;
 
-let k = 1;
 let a = 0.3;
 let d = 0.3;
 let s = 1;
@@ -104,6 +104,13 @@ function limit(min, max, val) {
   return Math.max(min, Math.min(max, val)); //TODO explain counterintuitive weirdness
 }
 
+function toDb(x) {
+  return  20*Math.log(x)/Math.log(10);
+}
+function fromDb(x) {
+  return 10**(x / 20)
+}
+
 function view(draw) {
   document.body.onkeypress = e => {
     if (e.key == 'F') {
@@ -124,8 +131,8 @@ function view(draw) {
     osc.frequency.setValueAtTime(440 * 2**((noteIdx - 69)/12), audioCtx.currentTime); 
     const env = audioCtx.createGain();
     env.gain.setValueAtTime(0, audioCtx.currentTime); // just assignment?
-    env.gain.linearRampToValueAtTime(k, audioCtx.currentTime + a);
-    env.gain.linearRampToValueAtTime(s*k, audioCtx.currentTime + a + d);
+    env.gain.linearRampToValueAtTime(1, audioCtx.currentTime + a);
+    env.gain.linearRampToValueAtTime(s, audioCtx.currentTime + a + d);
     osc.connect(env);
     env.connect(input);
     osc.start();
@@ -212,9 +219,9 @@ function view(draw) {
     ['div', {style: 'display: inline-flex'},
       knobView(draw, {
         title: 'gain',
-        toReading: () => k * 260 - 130,
-        fromReading: angle => {k = limit(0, 1, (angle + 130) / 260)},
-        show: () => `${Math.round(k * 100) / 100}` //in Db?
+        toReading: () => (toDb(input.gain.value) + 60) / 60 * 260 - 130,
+        fromReading: angle => {input.gain.value = fromDb(limit(-60, 0, (angle + 130) / 260 * 60 - 60))},
+        show: () => `${Math.round(20*Math.log(input.gain.value)/Math.log(10) * 100) / 100}` //in Db?
       }),
       knobView(draw, {
         title: 'attack',
