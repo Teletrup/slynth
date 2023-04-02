@@ -1,5 +1,4 @@
-import * as Vsmth from './vsmth.js'
-
+import * as Vsmth from '../lib/vsmth.js'
 
 
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -22,7 +21,7 @@ master.connect(audioCtx.destination);
 const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 const noteKeys = 'zsxdcvgbhnjm,l.;/q2w3e4rt6y7ui9o0p-[]'
 const keyFlags = Object.fromEntries([...noteKeys].map(x => [x, false]));
-
+ 
 const notes = Array.from(Array(128), (x, i) => ({
   name: getNoteName(i),
   osc: undefined,
@@ -31,14 +30,15 @@ const notes = Array.from(Array(128), (x, i) => ({
 
 let locked = false
 
+let synth = {
+  octave: 3,
+  a: 0.3,
+  d: 0.3,
+  s: 1,
+  r: 0.3,
+  waveform: 'sawtooth',
+}
 
-let octave = 3;
-
-let a = 0.3;
-let d = 0.3;
-let s = 1;
-let r = 0.3;
-let waveform = 'sawtooth';
 
 
 function knobView(draw, {title, toReading, fromReading, show}) {
@@ -75,12 +75,14 @@ function knobView(draw, {title, toReading, fromReading, show}) {
 }
 
 //abstracting
+//  decoupling from "synth"
 //wave name
 //drawing expression
-function waveButtonView(draw, wf, picture) {
-  return ['svg', {style: 'width: 30px; height: 20px', onclick: () => {waveform = wf; draw()}},
-    ['rect', {width: '100%', height: '100%', fill: ((waveform === wf) ? 'black' : '#eee')}],
-    ['svg', {x: 0.15*30, y: 0.15*20, width: 0.7*30, height: 0.7*20, stroke: (waveform === wf) ? 'white' : 'black'},
+function waveButtonView(draw, synth, waveform, picture) {
+  const isSelected = synth.waveform === waveform;
+  return ['svg', {style: 'width: 30px; height: 20px', onclick: () => {synth.waveform = waveform; draw()}},
+    ['rect', {width: '100%', height: '100%', fill: ((synth.waveform === waveform) ? 'black' : '#eee')}],
+    ['svg', {x: 0.15*30, y: 0.15*20, width: 0.7*30, height: 0.7*20, stroke: (synth.waveform === waveform) ? 'white' : 'black'},
       picture, //TODO use a group with scaling? //what's a viewbox?
     ],
   ];
@@ -95,7 +97,6 @@ master.gain.setValueAtTime(1, audioCtx.currentTime);
 
 function getNoteName(n) {
   return `${noteNames[n % 12]}${Math.floor(n / 12) - 1}`;
-  //return n;
 }
 
 
@@ -114,10 +115,10 @@ function fromDb(x) {
 function view(draw) {
   document.body.onkeypress = e => {
     if (e.key == 'F') {
-      octave--;
+      synth.octave--;
       draw();
     } else if (e.key == 'K') {
-      octave++;
+      synth.octave++;
       draw();
     }
   }
@@ -125,14 +126,14 @@ function view(draw) {
     const relIdx = noteKeys.indexOf(e.key);
     if (relIdx === -1 || keyFlags[relIdx]) return
     keyFlags[relIdx] = true;
-    const noteIdx = relIdx + (octave + 1) * 12;
+    const noteIdx = relIdx + (synth.octave + 1) * 12;
     const osc = audioCtx.createOscillator();
-    osc.type = waveform;
+    osc.type = synth.waveform;
     osc.frequency.setValueAtTime(440 * 2**((noteIdx - 69)/12), audioCtx.currentTime); 
     const env = audioCtx.createGain();
     env.gain.setValueAtTime(0, audioCtx.currentTime); // just assignment?
-    env.gain.linearRampToValueAtTime(1, audioCtx.currentTime + a);
-    env.gain.linearRampToValueAtTime(s, audioCtx.currentTime + a + d);
+    env.gain.linearRampToValueAtTime(1, audioCtx.currentTime + synth.a);
+    env.gain.linearRampToValueAtTime(synth.s, audioCtx.currentTime + synth.a + synth.d);
     osc.connect(env);
     env.connect(input);
     osc.start();
@@ -144,27 +145,30 @@ function view(draw) {
     const relIdx = noteKeys.indexOf(e.key);
     if (relIdx === -1) return
     keyFlags[relIdx] = false;
-    const noteIdx = relIdx + (octave + 1) * 12;
+    const noteIdx = relIdx + (synth.octave + 1) * 12;
     const osc = notes[noteIdx].osc;
     const env = notes[noteIdx].env;
-    env.gain.linearRampToValueAtTime(0, audioCtx.currentTime + r);
+    env.gain.linearRampToValueAtTime(0, audioCtx.currentTime + synth.r);
+    osc.stop(audioCtx.currentTime + synth.r);
+    /*
     setTimeout(() => {
       osc.stop();
       env.disconnect(input);
-    }, r * 1000); //does increasing this cause weird artifacts?
+    }, synth.r * 1000); //does increasing this cause weird artifacts?
+    */
     notes[noteIdx].osc = undefined;
     notes[noteIdx].env = undefined;
     draw();
   }
   const lspan = Math.log(20000) / Math.log(440) - 1;
   return ['div',
-    `octave: ${octave}`,
+    `octave: ${synth.octave}`,
     ['br'],
     `notes: ${notes.filter(x => x.osc !== undefined).map(x => x.name).join(', ')}`,
     //store names in array?
     //'a\na\n', //no nl-s in text nodes?
     ['br'],
-    waveButtonView(draw, 'sine',
+    waveButtonView(draw, synth, 'sine',
       ['g',
         ...[...Array(10).keys()].map(i => ['line', {
           x1: `${i*10}%`,
@@ -174,14 +178,14 @@ function view(draw) {
         }]),
       ]
     ),
-    waveButtonView(draw, 'triangle',
+    waveButtonView(draw, synth, 'triangle',
       ['g',
         ['line', {x1: '0%', y1: '50%', x2: '25%', y2: '0%'}],
         ['line', {x1: '25%', y1: '0%', x2: '75%', y2: '100%'}],
         ['line', {x1: '75%', y1: '100%', x2: '100%', y2: '50%'}],
       ]
     ),
-    waveButtonView(draw, 'square',
+    waveButtonView(draw, synth, 'square',
       ['g',
         ['line', {x1: '0%', y1: '50%', x2: '0%', y2: '0%'}],
         ['line', {x1: '0%', y1: '0%', x2: '50%', y2: '0%'}],
@@ -190,7 +194,7 @@ function view(draw) {
         ['line', {x1: '100%', y1: '100%', x2: '100%', y2: '50%'}],
       ]
     ),
-    waveButtonView(draw, 'sawtooth',
+    waveButtonView(draw, synth, 'sawtooth',
       ['g',
         ['line', {x1: '0%', y1: '50%', x2: '50%', y2: '0%'}],
         ['line', {x1: '50%', y1: '0%', x2: '50%', y2: '100%'}],
@@ -225,31 +229,31 @@ function view(draw) {
       }),
       knobView(draw, {
         title: 'attack',
-        toReading: () => a / 2 * 260 - 130,
-        fromReading: angle => {a = limit(0, 2, (angle + 130) / 260 * 2)},
+        toReading: () => synth.a / 2 * 260 - 130,
+        fromReading: angle => {synth.a = limit(0, 2, (angle + 130) / 260 * 2)},
         /*
         toReading: () => Math.log(a)/Math.log(10)*130,
         fromReading: angle => {a = limit(0.1, 10, 10**(angle/130))},
         */
-        show: () => `${Math.round(a * 100) / 100} s`
+        show: () => `${Math.round(synth.a * 100) / 100} s`
       }),
       knobView(draw, {
         title: 'decay',
-        toReading: () => d / 2 * 260 - 130,
-        fromReading: angle => {d = limit(0, 2, (angle + 130) / 260 * 2)},
-        show: () => `${Math.round(d * 100) / 100} s`
+        toReading: () => synth.d / 2 * 260 - 130,
+        fromReading: angle => {synth.d = limit(0, 2, (angle + 130) / 260 * 2)},
+        show: () => `${Math.round(synth.d * 100) / 100} s`
       }),
       knobView(draw, {
         title: 'sustain',
-        toReading: () => s * 260 - 130,
-        fromReading: angle => {s = limit(0, 1, (angle + 130) / 260)},
-        show: () => `${Math.round(s * 100) / 100}` //in Db?
+        toReading: () => synth.s * 260 - 130,
+        fromReading: angle => {synth.s = limit(0, 1, (angle + 130) / 260)},
+        show: () => `${Math.round(synth.s * 100) / 100}` //in Db?
       }),
       knobView(draw, {
         title: 'release',
-        toReading: () => r / 2 * 260 - 130,
-        fromReading: angle => {r = limit(0, 2, (angle + 130) / 260 * 2)},
-        show: () => `${Math.round(r * 100) / 100} s`
+        toReading: () => synth.r / 2 * 260 - 130,
+        fromReading: angle => {synth.r = limit(0, 2, (angle + 130) / 260 * 2)},
+        show: () => `${Math.round(synth.r * 100) / 100} s`
       }),
     ],
 	['br'],
@@ -265,12 +269,14 @@ function view(draw) {
         */
         show: () => `${Math.round(master.threshold.value * 100) / 100} dB`
       }),
+      /*
       knobView(draw, { //TODO l8r
         title: 'knee',
         toReading: () => d / 2 * 260 - 130,
         fromReading: angle => {d = limit(0, 2, (angle + 130) / 260 * 2)},
         show: () => `co?`
       }),
+      */
       knobView(draw, {
         title: 'ratio',
         toReading: () => Math.log(master.ratio.value)/Math.log(10)*130,

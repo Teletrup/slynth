@@ -151,8 +151,6 @@ fix pops
 release bug
   a >~ 2r
 
-refactor
-split up the main view
 
 adsrView, filterView, oscView
 setting parameters and the side effects
@@ -205,3 +203,19 @@ collected.
 "delete" vs setting as "undefined"
 
 stopping a voice below an amplitude threshold
+  for k-s
+
+karplus-strong
+  seems impractical to have 128 delay lines
+  12 delay lines?
+    works with TET
+
+how are guitar frets spaced?
+
+adding noise waveform
+
+
+abstracting a wave shape selection view
+  abstracting a "selectable" thingy?
+
+is putting a note table into synth a good thing?
