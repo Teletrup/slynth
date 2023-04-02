@@ -219,3 +219,27 @@ abstracting a wave shape selection view
   abstracting a "selectable" thingy?
 
 is putting a note table into synth a good thing?
+
+some all-note mapping must be inside synth, so the correct note gets released
+
+voice as a data structure
+  all the WA nodes
+  note name field kinda doesn't fit
+    petty
+
+keyboardable component
+  call it a synth?
+    naaah
+      synths should be separated
+        they could play in the background
+      it's just a midi input
+    maybe, but I might want MIDI splitters later
+  MIDI receiver
+  it can press a note or release it
+  keyboard Sink?
+  fooboard
+
+principle of minimal UI binding
+  but why?
+
+pure widgets
