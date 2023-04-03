@@ -29,15 +29,43 @@ const keyFlags = Object.fromEntries([...noteKeys].map(x => [x, false]));
 
 let locked = false;
 
+
 let zz1 = {
   octave: 3,
+  //^yeet to fooboard
   a: 0.3,
   d: 0.3,
   s: 1,
   r: 0.3,
   waveform: 'sawtooth',
   voices: Array(128),
-}
+  noteDown: function(noteIdx) {
+    const osc = audioCtx.createOscillator();
+    osc.type = this.waveform;
+    osc.frequency.setValueAtTime(440 * 2**((noteIdx - 69)/12), audioCtx.currentTime); 
+    const env = audioCtx.createGain();
+    env.gain.setValueAtTime(0, audioCtx.currentTime); //replace with just assignment?
+    env.gain.linearRampToValueAtTime(1, audioCtx.currentTime + this.a);
+    env.gain.linearRampToValueAtTime(this.s, audioCtx.currentTime + this.a + this.d);
+    osc.connect(env);
+    env.connect(mix);
+    osc.start();
+    const voice = {
+      name: Util.getNoteName(noteIdx),
+      osc: osc,
+      env: env,
+    };
+    this.voices[noteIdx] = voice;
+  },
+  noteUp: function(noteIdx) {
+    const voice = this.voices[noteIdx];
+    voice.env.gain.linearRampToValueAtTime(0, audioCtx.currentTime + this.r);
+    voice.osc.stop(audioCtx.currentTime + this.r);
+    this.voices[noteIdx] = undefined;
+  },
+} //TODO instantiation
+
+
 
 const synth = zz1;
 
@@ -97,9 +125,15 @@ master.gain.setValueAtTime(1, audioCtx.currentTime);
 */
 
 
+//function fooboardView(draw, destination, view) //with fn
+function fooboardView(draw, destination, gui) { //with expr
+  
+  return gui;
+}
 
 function view(draw) {
-  document.body.onkeypress = e => {
+  //wrapprer object for events and spread?
+  const keypress = e => { //sort that keypress/keydown thing out
     if (e.key == 'F') {
       synth.octave--;
       draw();
@@ -108,48 +142,24 @@ function view(draw) {
       draw();
     }
   }
-  document.body.onkeydown = e => {
+  const keydown = e => { //TODO change to local events, focus first on load
     const relIdx = noteKeys.indexOf(e.key);
     if (relIdx === -1 || keyFlags[relIdx]) return
     keyFlags[relIdx] = true;
     const noteIdx = relIdx + (synth.octave + 1) * 12;
-
-    //synth specific part starts here
-    const osc = audioCtx.createOscillator();
-    osc.type = synth.waveform;
-    osc.frequency.setValueAtTime(440 * 2**((noteIdx - 69)/12), audioCtx.currentTime); 
-    const env = audioCtx.createGain();
-    env.gain.setValueAtTime(0, audioCtx.currentTime); //replace with just assignment?
-    env.gain.linearRampToValueAtTime(1, audioCtx.currentTime + synth.a);
-    env.gain.linearRampToValueAtTime(synth.s, audioCtx.currentTime + synth.a + synth.d);
-    osc.connect(env);
-    env.connect(mix);
-    osc.start();
-
-    const voice = {
-      name: Util.getNoteName(noteIdx),
-      osc: osc,
-      env: env,
-    };
-    synth.voices[noteIdx] = voice;
-
+    synth.noteDown(noteIdx);
     draw();
   }
-  document.body.onkeyup = e => {
-    const relIdx = noteKeys.indexOf(e.key);
+  const keyup = e => {
+    const relIdx = noteKeys.indexOf(e.key); //factor out?
     if (relIdx === -1) return
     keyFlags[relIdx] = false;
     const noteIdx = relIdx + (synth.octave + 1) * 12;
-    //
-    const voice = synth.voices[noteIdx];
-    voice.env.gain.linearRampToValueAtTime(0, audioCtx.currentTime + synth.r);
-    voice.osc.stop(audioCtx.currentTime + synth.r);
-    //
-    synth.voices[noteIdx] = undefined;
+    synth.noteUp(noteIdx);
     draw();
   }
   const lspan = Math.log(20000) / Math.log(440) - 1;
-  return ['div',
+  return ['div', {className: 'fooboard', tabIndex: 0, onkeydown: keydown, onkeyup: keyup, onkeypress: keypress},
     `octave: ${synth.octave}`,
     ['br'],
     `notes: ${synth.voices.filter(x => x !== undefined).map(x => x.name).join(', ')}`,
@@ -289,4 +299,6 @@ function view(draw) {
 }
 
 Vsmth.init(view, document.body);
+
+document.querySelector('.fooboard').focus();
 

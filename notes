@@ -236,10 +236,39 @@ keyboardable component
     maybe, but I might want MIDI splitters later
   MIDI receiver
   it can press a note or release it
-  keyboard Sink?
-  fooboard
+  Fooboard
+    with functions
+      downf
+      upf
+    with objects
+      an object with down() and up() methods
+
+fooboard octaves
+  fooboard view as a method?
+    spurious instantiation?
+      I want fooboards other than synths
+        like the splittable one
+        it's just a wrapper, bro
+        but a stateful wrapper
+  fooboards won't change destinations
+  but they may change octaves
+
+the oop-functional clash
+
+the view also doesnt' change, it could be preinitialized
+
+more VMish way would be to store all fooboard octaves separately
+
+doing it with classes seems bloated
+
+using call
+  synth object has fns using "this"
+  the fooboard thingy binds them
+^^ forgot how methods in old js work
+
 
 principle of minimal UI binding
   but why?
 
 pure widgets
+
