@@ -272,3 +272,7 @@ principle of minimal UI binding
 
 pure widgets
 
+fooboard IN synth?
+in preact I would've used component state for fooboard octave
+
+getting and setting sanely
