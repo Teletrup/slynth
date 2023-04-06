@@ -276,3 +276,91 @@ fooboard IN synth?
 in preact I would've used component state for fooboard octave
 
 getting and setting sanely
+
+multiple synths
+routing midi
+routing fooboard?
+
+fix weird bug where filter settings don't always work
+  it worked when osc was destroyed using regular timeout
+
+clock, sequencer, multiple synths, distortion, compressor
+sequencer
+  piano roll
+  playing the animation
+
+signals between plugins
+
+sane knobs
+  reading bounds
+  parameter bounds
+  scale type
+
+ model-level reactivity?
+  the knob bloat problem
+    repeating parameter setting code
+
+dependent state
+  setters?
+  commit?
+
+knob in MV with selector
+
+p(r_min) = p_min
+p(r_max) = p_max
+
+linear version:
+  p(r) = ar + b
+  a*r_min + b = p_min 
+  a*r_max + b = p_max
+  a(r_max - r_min) = p_max - p_min
+  a = (p_max - p-min)/(r_max - r_min)
+  b = p_min - a*r_min
+
+logarithmic version
+  p(r) = a^r <- wrong, but why?
+  p(r) = c^(a*r + b)
+  p_min = c^(a*r_min + b)
+  p_max = c^(a*r_max + b)
+  lc(p_min) = a*r_min + b
+  lc(p_max) = a*r_max + b
+
+is c a free parameter?
+I don't think so
+  desmos gives the same curves for c=e & c=10
+
+are all exponential curves scaled versions of one another
+  .A a, b .in R+: .E c in R+: .A x: a^x = cb^x?
+they aren't, lol
+  but how to prove it?
+    prove that c is not a constant function of x
+scaled in which way?
+  does it matter?
+
+vv is that horizontal scaling?
+
+what i meant is:
+  a^x = b^(cx) ?
+  a^x = (b^c)^x
+  x = log_a((b^c)^x)
+  x = x*log_a(b^c)
+  log_a(b^c) = 1
+  b^c = a
+  c = log_b(a)
+or 
+  log_b(a^x) = cx
+  x*log_b(a) = cx
+  c = log_b(a)
+^^ why didn't I think of the 2nd one 1st?
+
+inverse of a linear function is also a linear function
+  y = ax+b
+  x = (y-b)/a
+    = y*1/a - b/a
+^^ how to wrap it up formally?
+
+why are linear transformations called linear?
+
+scaled exponential functions
+ae^(bx)
+why would I not want them in knobs?

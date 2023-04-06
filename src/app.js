@@ -1,6 +1,16 @@
 import * as Vsmth from '../lib/vsmth.js'
 import * as Util from './util.js'
 
+class Param { 
+  constructor(val, hooks) {
+    this.hooks = hooks;
+    this.setVal(val);
+  }
+  setVal(val) {
+    this.val = val;
+    this.hooks?.map(f => f(val));
+  }
+}
 
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
@@ -12,6 +22,9 @@ master.threshold.value = 0;
 const lop = audioCtx.createBiquadFilter();
 lop.type = 'lowpass';
 lop.frequency.value = 1000;
+const cutoff = new Param(1000, [
+  val => lop.frequency.value = val,
+]);
 //lop.Q.value = 50;
 
 
@@ -31,7 +44,7 @@ const keyFlags = Object.fromEntries([...noteKeys].map(x => [x, false]));
 
 let zz1 = {
   fooboardOctave: 3,
-  //^yeet to fooboard
+  //^yeet to fooboard?
   a: 0.3,
   d: 0.3,
   s: 1,
@@ -68,6 +81,52 @@ const synth = zz1;
 
 
 let cursorLocked = false;
+
+function knobView2(draw, {title, param, unit, scale='lin', rounding = 2, paramRange, readingRange=[-130, 130]}) {
+  const knobRef = {};
+  let toReading;
+  let fromReading;
+  if (scale === 'lin') { //TODO refactor
+    const a = (paramRange[1] - paramRange[0]) / (readingRange[1] - readingRange[0]);
+    const b = paramRange[0] - a*readingRange[0];
+    fromReading = r => Math.min(paramRange[1], Math.max(paramRange[0], a * r + b));
+    toReading = p => (p - b) / a;
+  } else if (scale === 'log') {
+    const a = (Math.log(paramRange[1]) - Math.log(paramRange[0])) / (readingRange[1] - readingRange[0]);
+    const b = Math.log(paramRange[0]) - a*readingRange[0];
+    fromReading = r => Math.min(paramRange[1], Math.max(paramRange[0], Math.exp(a * r + b)));
+    toReading = p => (Math.log(p) - b) / a;
+  }
+  const angle = toReading(param.val);
+  function lock() {
+    knobRef.current.requestPointerLock();
+    cursorLocked = true;
+    //updating model without re-rendering. That's cool
+  }
+  function turn(e) {
+    if (cursorLocked) {
+      param.setVal(fromReading(angle - e.movementY)) //rename readingUpdate or smth?
+      draw();
+    }
+  }
+  function unlock() {
+    document.exitPointerLock();
+    cursorLocked = false;
+  }
+  const events = {onmousedown: lock, onmouseup: unlock, onmousemove: turn};
+  return (
+      ['div', {className: 'knob'},
+        ['span', {style: 'margin-bottom: 0.1em'}, title],
+        ['svg', {style: 'width: 40px; height: 40px;'},
+          ['g', {transform: `rotate(${angle}, 20, 20)`, ...events}, //using a function wouldn't be so pretty here
+            ['circle', {ref: knobRef, cx: 20, cy: 20, r: 20}],
+            ['rect', {x: 20-1.5, y: 2, width: 3, height: `30%`, fill: 'white'}], //TODO color palette, contexts for VSMTH
+          ],
+        ],
+         unit ? `${Math.floor(param.val * 10**rounding)/10**rounding} ${unit}` : param.val,
+      ]
+  );
+}
 
 function knobView(draw, {title, toReading, fromReading, show}) {
   const knobRef = {};
@@ -200,13 +259,13 @@ function view(draw) {
       waveSelectionView(draw, setWf, synth.waveform),
       ['br'],
       ['div', {style: 'display: flex'},
-        knobView(draw, {
+        knobView2(draw, {
           title: 'cutoff', //named parameters? 
-          //toReading: () => lop.frequency.value/20000*(2*130)-130,
-          //fromReading: angle => {lop.frequency.value = (angle + 130)/(2*130)*20000},
-          toReading: () => (Math.log(lop.frequency.value) / Math.log(440) - 1)/lspan*130,
-          fromReading: angle => {lop.frequency.value = Util.limit(9, 20000, 440**(1 + angle/130*lspan))}, //TODO implement log freq
-          show: () => `${Math.floor(lop.frequency.value)} Hz`
+          param: cutoff, 
+          paramRange: [9, 20000],
+          rounding: 0,
+          scale: 'log',
+          unit: 'Hz',
         }),
         knobView(draw, {
           title: 'resonance', //named parameters? 
