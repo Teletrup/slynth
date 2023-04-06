@@ -15,9 +15,28 @@ class Param {
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
 const mix = audioCtx.createGain();
-mix.gain.value = Util.fromDb(-12);
+const gain = new Param(-12, [
+  val => mix.gain.value = Util.fromDb(val)
+])
+
 const master = audioCtx.createDynamicsCompressor();
-master.threshold.value = 0;
+const threshold = new Param(0, [
+  val => master.threshold.value = val,
+])
+/*
+const knee = new Param(-12, [ //what's the default?
+  val => mix.knee.value = val,
+])
+*/
+const ratio = new Param(12, [
+  val => master.threshold.value = val,
+])
+const attack = new Param(0, [
+  val => master.attack.value = val,
+])
+const release = new Param(0.25, [
+  val => master.release.value = val,
+])
 
 const lop = audioCtx.createBiquadFilter();
 lop.type = 'lowpass';
@@ -25,6 +44,9 @@ lop.frequency.value = 1000;
 const cutoff = new Param(1000, [
   val => lop.frequency.value = val,
 ]);
+const resonance = new Param(0, [
+val => lop.Q.value = val
+])
 //lop.Q.value = 50;
 
 
@@ -45,10 +67,10 @@ const keyFlags = Object.fromEntries([...noteKeys].map(x => [x, false]));
 let zz1 = {
   fooboardOctave: 3,
   //^yeet to fooboard?
-  a: 0.3,
-  d: 0.3,
-  s: 1,
-  r: 0.3,
+  a: new Param(0.3),
+  d: new Param(0.3),
+  s: new Param(1),
+  r: new Param(0.3),
   waveform: 'sawtooth',
   voices: Array(128),
   noteDown: function(noteIdx) {
@@ -57,8 +79,8 @@ let zz1 = {
     osc.frequency.setValueAtTime(440 * 2**((noteIdx - 69)/12), audioCtx.currentTime); 
     const env = audioCtx.createGain();
     env.gain.setValueAtTime(0, audioCtx.currentTime); //replace with just assignment?
-    env.gain.linearRampToValueAtTime(1, audioCtx.currentTime + this.a);
-    env.gain.linearRampToValueAtTime(this.s, audioCtx.currentTime + this.a + this.d);
+    env.gain.linearRampToValueAtTime(1, audioCtx.currentTime + this.a.val);
+    env.gain.linearRampToValueAtTime(this.s.val, audioCtx.currentTime + this.a.val + this.d.val);
     osc.connect(env);
     env.connect(mix);
     osc.start();
@@ -71,8 +93,12 @@ let zz1 = {
   },
   noteUp: function(noteIdx) {
     const voice = this.voices[noteIdx];
-    voice.env.gain.linearRampToValueAtTime(0, audioCtx.currentTime + this.r);
-    voice.osc.stop(audioCtx.currentTime + this.r);
+    voice.env.gain.linearRampToValueAtTime(0, audioCtx.currentTime + this.r.val);
+    voice.osc.stop(audioCtx.currentTime + this.r.val);
+    setTimeout(() => voice.env.disconnect(mix), 1000*this.r.val);
+    //^^ fixes the weird unresponsive knob bug
+    //^^why stopping osc with timeout made pops?
+    //doesn't the same thing happen with compressor?
     this.voices[noteIdx] = undefined;
   },
 } //TODO instantiation
@@ -82,7 +108,7 @@ const synth = zz1;
 
 let cursorLocked = false;
 
-function knobView2(draw, {title, param, unit, scale='lin', rounding = 2, paramRange, readingRange=[-130, 130]}) {
+function knobView(draw, param, {title, unit, scale='lin', rounding=0, paramRange, readingRange=[-130, 130]}) {
   const knobRef = {};
   let toReading;
   let fromReading;
@@ -113,6 +139,7 @@ function knobView2(draw, {title, param, unit, scale='lin', rounding = 2, paramRa
     document.exitPointerLock();
     cursorLocked = false;
   }
+  const roundval = Math.floor(param.val * 10**rounding)/10**rounding;
   const events = {onmousedown: lock, onmouseup: unlock, onmousemove: turn};
   return (
       ['div', {className: 'knob'},
@@ -123,40 +150,7 @@ function knobView2(draw, {title, param, unit, scale='lin', rounding = 2, paramRa
             ['rect', {x: 20-1.5, y: 2, width: 3, height: `30%`, fill: 'white'}], //TODO color palette, contexts for VSMTH
           ],
         ],
-         unit ? `${Math.floor(param.val * 10**rounding)/10**rounding} ${unit}` : param.val,
-      ]
-  );
-}
-
-function knobView(draw, {title, toReading, fromReading, show}) {
-  const knobRef = {};
-  const angle = toReading(); //rename as toSetting?
-  function lock() {
-    knobRef.current.requestPointerLock();
-    cursorLocked = true;
-    //updating model without re-rendering. That's cool
-  }
-  function turn(e) {
-    if (cursorLocked) {
-      fromReading(angle - e.movementY) //rename readingUpdate or smth?
-      draw();
-    }
-  }
-  function unlock() {
-    document.exitPointerLock();
-    cursorLocked = false;
-  }
-  const events = {onmousedown: lock, onmouseup: unlock, onmousemove: turn};
-  return (
-      ['div', {className: 'knob'},
-        ['span', {style: 'margin-bottom: 0.1em'}, title],
-        ['svg', {style: 'width: 40px; height: 40px;'},
-          ['g', {transform: `rotate(${angle}, 20, 20)`, ...events}, //using a function wouldn't be so pretty here
-            ['circle', {ref: knobRef, cx: 20, cy: 20, r: 20}],
-            ['rect', {x: 20-1.5, y: 2, width: 3, height: `30%`, fill: 'white'}], //TODO color palette, contexts for VSMTH
-          ],
-        ],
-        show(),
+         unit ? `${roundval} ${unit}` : roundval,
       ]
   );
 }
@@ -259,97 +253,74 @@ function view(draw) {
       waveSelectionView(draw, setWf, synth.waveform),
       ['br'],
       ['div', {style: 'display: flex'},
-        knobView2(draw, {
+        knobView(draw, cutoff, {
           title: 'cutoff', //named parameters? 
-          param: cutoff, 
           paramRange: [9, 20000],
-          rounding: 0,
           scale: 'log',
           unit: 'Hz',
         }),
-        knobView(draw, {
+        knobView(draw, resonance, {
           title: 'resonance', //named parameters? 
-          //toReading: () => lop.frequency.value/20000*(2*130)-130,
-          //fromReading: angle => {lop.frequency.value = (angle + 130)/(2*130)*20000},
-          toReading: () => lop.Q.value / 100 * 260 - 130,
-          fromReading: angle => {lop.Q.value = 100 * (angle + 130) / 260},
-          show: () => `${Math.floor(lop.Q.value)}`
+          paramRange: [-50, 50],
         }),
       ],
       ['div', {style: 'display: inline-flex'},
-        knobView(draw, {
+        knobView(draw, gain, {
           title: 'gain',
-          toReading: () => (Util.toDb(mix.gain.value) + 60) / 60 * 260 - 130,
-          fromReading: angle => {mix.gain.value = Util.fromDb(Util.limit(-60, 0, (angle + 130) / 260 * 60 - 60))},
-          show: () => `${Math.round(20*Math.log(mix.gain.value)/Math.log(10) * 100) / 100}` //in Db?
+          paramRange: [-60, 0],
+          unit: 'dB',
         }),
-        knobView(draw, {
+        knobView(draw, synth.a, {
           title: 'attack',
-          toReading: () => synth.a / 2 * 260 - 130,
-          fromReading: angle => {synth.a = Util.limit(0, 2, (angle + 130) / 260 * 2)},
-          /*
-          toReading: () => Math.log(a)/Math.log(10)*130,
-          fromReading: angle => {a = Util.limit(0.1, 10, 10**(angle/130))},
-          */
-          show: () => `${Math.round(synth.a * 100) / 100} s`
+          paramRange: [0, 2],
+          rounding: 2,
+          unit: 's',
         }),
-        knobView(draw, {
+        knobView(draw, synth.d, {
           title: 'decay',
-          toReading: () => synth.d / 2 * 260 - 130,
-          fromReading: angle => {synth.d = Util.limit(0, 2, (angle + 130) / 260 * 2)},
-          show: () => `${Math.round(synth.d * 100) / 100} s`
+          paramRange: [0, 2],
+          rounding: 2,
+          unit: 's',
         }),
-        knobView(draw, {
-          title: 'sustain',
-          toReading: () => synth.s * 260 - 130,
-          fromReading: angle => {synth.s = Util.limit(0, 1, (angle + 130) / 260)},
-          show: () => `${Math.round(synth.s * 100) / 100}` //in Db?
+        knobView(draw, synth.s, {
+          title: 'sustain', //db?
+          rounding: 2,
+          paramRange: [0, 1],
         }),
-        knobView(draw, {
+        knobView(draw, synth.r, {
           title: 'release',
-          toReading: () => synth.r / 2 * 260 - 130,
-          fromReading: angle => {synth.r = Util.limit(0, 2, (angle + 130) / 260 * 2)},
-          show: () => `${Math.round(synth.r * 100) / 100} s`
+          paramRange: [0, 2],
+          rounding: 2,
+          unit: 's',
         }),
       ],
     ['br'],
     ['br'],
     ['div', {style: 'display: inline-flex'},
-        knobView(draw, {
+        knobView(draw, threshold, {
           title: 'threshold',
-          toReading: () => master.threshold.value / 30 * 130,
-          fromReading: angle => {master.threshold.value = Util.limit(-30, 30, angle / 130 * 30)},
-          /*
-          toReading: () => Math.log(a)/Math.log(10)*130,
-          fromReading: angle => {a = Util.limit(0.1, 10, 10**(angle/130))},
-          */
-          show: () => `${Math.round(master.threshold.value * 100) / 100} dB`
+          paramRange: [-60, 0],
+          unit: 'dB',
         }),
         /*
-        knobView(draw, { //TODO l8r
-          title: 'knee',
-          toReading: () => d / 2 * 260 - 130,
-          fromReading: angle => {d = Util.limit(0, 2, (angle + 130) / 260 * 2)},
-          show: () => `co?`
+        knobView(draw, knee, {
         }),
         */
-        knobView(draw, {
+        knobView(draw, ratio, {
           title: 'ratio',
-          toReading: () => Math.log(master.ratio.value)/Math.log(10)*130,
-          fromReading: angle => {master.ratio.value = Util.limit(1/20, 20, 10**(angle/130))}, //TODO fix range
-          show: () => `${Math.round(master.ratio.value * 100) / 100}` //in Db?
+          paramRange: [0, 40],
         }),
-        knobView(draw, {
+        knobView(draw, attack, {
           title: 'attack',
-          toReading: () => master.attack.value / 2 * 260 - 130,
-          fromReading: angle => {master.attack.value = Util.limit(0, 2, (angle + 130) / 260 * 2)},
-          show: () => `${Math.round(master.attack.value * 100) / 100} s`
+          paramRange: [0, 1],
+          rounding: 2,
+          unit: 's',
         }),
-        knobView(draw, {
+        knobView(draw, release, {
           title: 'release',
-          toReading: () => master.release.value / 2 * 260 - 130,
-          fromReading: angle => {master.release.value = Util.limit(0, 2, (angle + 130) / 260 * 2)},
-          show: () => `${Math.round(master.release.value * 100) / 100} s`
+          paramRange: [0, 1],
+          rounding: 2,
+          unit: 's',
         }),
       ],
     ]
