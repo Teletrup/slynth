@@ -238,12 +238,11 @@ function fooboardView(draw, receiver, gui) { //with expr
 }
 
 
-
-function view(draw) {
+function synthView(draw, synth) {
   //wrapprer object for events and spread?
   const lspan = Math.log(20000) / Math.log(440) - 1;
-  //const setWf = wf => synth.wf = wf; //that's what typescript is for
   const setWf = wf => synth.waveform = wf;
+  //const setWf = wf => synth.wf = wf; //that's what typescript is for
   return fooboardView(draw, synth,
     ['div',
       `octave: ${synth.fooboardOctave}`,
@@ -251,7 +250,6 @@ function view(draw) {
       `notes: ${synth.voices.filter(x => x !== undefined).map(x => x.name).join(', ')}`,
       ['br'],
       waveSelectionView(draw, setWf, synth.waveform),
-      ['br'],
       ['div', {style: 'display: flex'},
         knobView(draw, cutoff, {
           title: 'cutoff', //named parameters? 
@@ -293,8 +291,14 @@ function view(draw) {
           rounding: 2,
           unit: 's',
         }),
-      ],
-    ['br'],
+      ]
+    ]
+  );
+}
+
+function mainView(draw) {
+  return ['div',
+    synthView(draw, synth),
     ['br'],
     ['div', {style: 'display: inline-flex'},
         knobView(draw, threshold, {
@@ -324,10 +328,9 @@ function view(draw) {
         }),
       ],
     ]
-  );
 }
 
-Vsmth.init(view, document.body);
+Vsmth.init(mainView, document.body);
 
 document.querySelector('.fooboard').focus();
 
