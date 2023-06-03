@@ -301,33 +301,44 @@ function mainView(draw) {
     synthView(draw, synth),
     ['br'],
     ['div', {style: 'display: inline-flex'},
-        knobView(draw, threshold, {
-          title: 'threshold',
-          paramRange: [-60, 0],
-          unit: 'dB',
-        }),
-        /*
-        knobView(draw, knee, {
-        }),
-        */
-        knobView(draw, ratio, {
-          title: 'ratio',
-          paramRange: [0, 40],
-        }),
-        knobView(draw, attack, {
-          title: 'attack',
-          paramRange: [0, 1],
-          rounding: 2,
-          unit: 's',
-        }),
-        knobView(draw, release, {
-          title: 'release',
-          paramRange: [0, 1],
-          rounding: 2,
-          unit: 's',
-        }),
-      ],
-    ]
+      knobView(draw, threshold, {
+        title: 'threshold',
+        paramRange: [-60, 0],
+        unit: 'dB',
+      }),
+      /*
+      knobView(draw, knee, {
+      }),
+      */
+      knobView(draw, ratio, {
+        title: 'ratio',
+        paramRange: [0, 40],
+      }),
+      knobView(draw, attack, {
+        title: 'attack',
+        paramRange: [0, 1],
+        rounding: 2,
+        unit: 's',
+      }),
+      knobView(draw, release, {
+        title: 'release',
+        paramRange: [0, 1],
+        rounding: 2,
+        unit: 's',
+      }),
+    ],
+		['br'],
+		['br'],
+		'keyboard bindings:',
+		['br'],
+		'raise octave - shift+K',
+		['br'],
+		'lower octave - shift+F',
+		['br'],
+		'Notes:',
+		['br'],
+		['img', {src: 'https://5minuteproducing.files.wordpress.com/2015/05/1027_1.gif'}],
+  ];
 }
 
 Vsmth.init(mainView, document.body);
